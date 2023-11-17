@@ -1,0 +1,35 @@
+[tool.poetry]
+name = "ds_project"
+version = "0.1.0"
+description = "GPT2-like text generator"
+authors = ["Maxim Grigorev <gignm01@gmail.com>"]
+maintainers = ["Maxim Grigorev <gignm01@gmail.com>"]
+readme = "README.md"
+repository = "https://github.com/Jserax/text_generator"
+keywords = ["data science"]
+license = "Apache-2.0"
+
+[tool.poetry.dependencies]
+python = "3.10.12"
+torch = "^2.1.1"
+transformers = "^4.35.2"
+tqdm = "^4.66.1"
+pyyaml = "^6.0.1"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.4.3"
+pre-commit = "^3.5.0"
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+
+[tool.isort]
+src_paths = ["src"]
+profile = "black"
+line_length = 88
+lines_after_imports = 2
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
