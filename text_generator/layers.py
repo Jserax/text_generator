@@ -15,13 +15,13 @@ class PositionalEncoding(nn.Module):
         div_term = torch.exp(
             torch.arange(0, emb_dim, 2) * (-torch.log(torch.tensor(max_len)) / emb_dim)
         )
-        pos = torch.zeros(max_len, 1, emb_dim)
-        pos[:, 0, 0::2] = torch.sin(position * div_term)
-        pos[:, 0, 1::2] = torch.cos(position * div_term)
+        pos = torch.zeros(max_len, emb_dim)
+        pos[:, 0::2] = torch.sin(position * div_term)
+        pos[:, 1::2] = torch.cos(position * div_term)
         self.register_buffer("pos", pos)
 
     def forward(self, x):
-        x = x + self.pos[: x.size(1)]
+        x = x + self.pos[None, : x.size(1)]
         return x
 
 
