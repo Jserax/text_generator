@@ -21,7 +21,7 @@ class PositionalEncoding(nn.Module):
         self.register_buffer("pos", pos)
 
     def forward(self, x):
-        x = x + self.pos[: x.size(0)]
+        x = x + self.pos[: x.size(1)]
         return x
 
 

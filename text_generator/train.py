@@ -6,25 +6,25 @@ from utils import CosineScheduler
 
 
 model_cfg = {
-    "vocab_size": 5031,
+    "vocab_size": 30522,
     "n_layers": 4,
     "n_heads": 8,
     "emb_dim": 256,
-    "ff_dim": 256,
-    "dropout": 0.3,
+    "ff_dim": 512,
+    "dropout": 0.1,
     "max_len": 256,
-    "flash": False,
+    "flash": True,
 }
 
-epochs = 100
-batch_size = 64
-lr = 3e-2
-min_lr = 3e-6
-weight_decay = 1e-02
-grad_clip = 2.0
+epochs = 30
+batch_size = 256
+lr = 3e-3
+min_lr = 1e-5
+weight_decay = 3e-02
+grad_clip = 1.0
 device = "cuda" if torch.cuda.is_available() else "cpu"
-num_workers = 1
-warmup_epochs = 4
+num_workers = 2
+warmup_epochs = 2
 
 
 def train():
@@ -39,31 +39,40 @@ def train():
 
     model = GazdanovPT(**model_cfg)
     model.to(device)
+    model = torch.compile(model)
     optimizer = torch.optim.AdamW(model.parameters(), lr)
     scheduler = CosineScheduler(
         optimizer,
         warmup_epochs * epoch_iters,
-        (epochs - 1) * epoch_iters,
+        (epochs - 2) * epoch_iters,
         min_lr,
         lr,
     )
-    criterion = torch.nn.CrossEntropyLoss()
+    scaler = torch.cuda.amp.GradScaler()
+    criterion = torch.nn.CrossEntropyLoss(ignore_index=0)
     progress = tqdm(range(epochs))
 
-    for _ in progress:
+    for epoch in progress:
         train_loss = 0.0
-        for x, y in train_loader:
+        for iter, (x, y) in tqdm(enumerate(train_loader), total=epoch_iters):
             x = x.to(device)
             y = y.to(device)
-            optimizer.zero_grad()
-            pred = model(x)
-            loss = criterion(pred, y)
-            loss.backward()
-            optimizer.step()
             scheduler.step()
+            optimizer.zero_grad()
+            with torch.autocast(device_type=device, dtype=torch.float16):
+                pred = model(x).permute(0, 2, 1)
+                loss = criterion(pred, y)
+            scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+            scaler.step(optimizer)
+            scaler.update()
             train_loss += loss.item()
-        train_loss /= epoch_iters
-        progress.postfix(f" | Train_loss: {train_loss:.4f}")
+            if iter % (epoch_iters // 5) == 0:
+                print(
+                    f"Epochs: {epoch + 1}/{epochs} | Iters: {iter+1}/{epoch_iters} | Train_loss {train_loss / (iter+1):.4f}"
+                )
+    model.save_model("/content/text_generator")
 
 
 if __name__ == "__main__":

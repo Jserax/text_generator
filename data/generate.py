@@ -9,7 +9,7 @@ def generate(
     with open(input_path, "r", encoding="utf-8") as f:
         data = f.read()
     tokenizer = AutoTokenizer.from_pretrained(
-        "DeepPavlov/distilrubert-tiny-cased-conversational-5k"
+        "DeepPavlov/distilrubert-tiny-cased-conversational-v1"
     )
     tensor = tokenizer.encode(
         data, add_special_tokens=False, return_tensors="pt"
